@@ -1,5 +1,7 @@
 # so-2023-2-ebpf
 
+---
+
 ## eBPF: Programando o Kernel
 
 Equipe: SOIA
@@ -16,6 +18,7 @@ Participantes:
 
 - [Introdução](#introdução)
 - [Fundamentos Teóricos](#fundamentos-teóricos)
+- [Referências](#referências)
 
 ### Introdução
 
@@ -51,3 +54,9 @@ Uma característica fundamental dos programas eBPF é sua capacidade de comparti
 Os programas eBPF são projetados com um foco na composabilidade, introduzindo os conceitos de "chamadas de cauda" (tail calls) e funções. As chamadas de função permitem a definição e execução de funções dentro de um programa eBPF, facilitando a modularização do código. Por outro lado, as chamadas de cauda possibilitam a execução de outro programa eBPF, substituindo o contexto de execução. Esse comportamento é análogo à chamada de sistema execve() para processos regulares, proporcionando uma flexibilidade notável na execução e na estruturação dos programas eBPF.
 
 Essas características expandem significativamente o escopo e a utilidade dos programas eBPF, tornando-os não apenas poderosos em termos de rastreamento e filtragem, mas também altamente flexíveis e adaptáveis a uma variedade de cenários de uso. A seção subsequente discute uma das aplicações práticas dessas capacidades, destacando um caso de uso comum e implementação exemplar.
+
+### Referências
+
+- EBPF Documentation. [S. l.], 2020. Disponível em: https://ebpf.io/what-is-ebpf/. Acesso em: 14 jan. 2024.
+- EBPF: Unlocking the Kernel [OFFICIAL DOCUMENTARY]. Produção: Speakeasy Productions. [S. l.: s. n.], 2023. Disponível em: https://www.youtube.com/watch?v=Wb_vD3XZYOA. Acesso em: 14 jan. 2024.
+- VIZARD, MIKE. Foundation Proposes Advancing eBPF Adoption Across Multiple OSes. Flórida, Estados Unidos, 12 ago. 2021. Disponível em: https://devops.com/foundation-proposes-advancing-ebpf-adoption-across-multiple-oses/. Acesso em: 14 jan. 2024.
