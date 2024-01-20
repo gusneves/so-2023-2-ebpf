@@ -11,7 +11,7 @@ program = """
 #include <uapi/linux/ptrace.h>
 BPF_HASH(clones);
 
-int hello_world(void *ctx){
+int counter(void *ctx){
     u64 uid;
     u64 counter = 0;
     u64 *p;
@@ -32,7 +32,7 @@ int hello_world(void *ctx){
 # Mesmo processo do programa anterior
 b = BPF(text=program)
 clone = b.get_syscall_fnname("clone")
-b.attach_kprobe(event=clone, fn_name="hello_world")
+b.attach_kprobe(event=clone, fn_name="counter")
 
 # Loop para leitura do hash map
 try:
