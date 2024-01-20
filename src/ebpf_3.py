@@ -13,7 +13,7 @@ struct data_t {
 
 BPF_PERF_OUTPUT(events);
 
-int hello_world(void *ctx){
+int registe_event(void *ctx){
     struct data_t data = {};
 
     data.uid = bpf_get_current_uid_gid() >> 32;
@@ -28,7 +28,7 @@ int hello_world(void *ctx){
 
 b = BPF(text=program)
 clone = b.get_syscall_fnname("clone")
-b.attach_kprobe(event=clone, fn_name="hello_world")
+b.attach_kprobe(event=clone, fn_name="registe_event")
 # header
 print("%-18s %-16s %-6s %-6s %s" % ("TIME(s)", "COMM","PID", "UID", "MESSAGE"))
 
@@ -45,7 +45,7 @@ def print_event(cpu, data, size):
 
 # loop with callback to print_event
 b["events"].open_perf_buffer(print_event)
-while 1:
+while True:
     try:
         b.perf_buffer_poll()
     except KeyboardInterrupt:

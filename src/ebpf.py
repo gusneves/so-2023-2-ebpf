@@ -8,7 +8,7 @@ from bcc import BPF
 # conseguimos definir, compilar e executar o programa 
 # em um único arquivo .py
 program = """
-int hello_world(void *ctx){
+int count_event(void *ctx){
     bpf_trace_printk("Hello, World!\\n");
     return 0;
 }
@@ -25,8 +25,8 @@ clone = b.get_syscall_fnname("clone")
 # e atrela a ela a função `name` a esse evento.
 #
 # Nesse caso, toda vez que o evento `sys_clone` for chamado
-# nossa função BPF `hello_world` será executada
-b.attach_kprobe(event=clone, fn_name="hello_world")
+# nossa função BPF `count_event` será executada
+b.attach_kprobe(event=clone, fn_name="count_event")
 try:
     # Este método lê o arquivo globalmente compartilhado*
     # /sys/kernel/debug/tracing/trace_pipe
