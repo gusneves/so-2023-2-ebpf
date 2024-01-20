@@ -19,6 +19,7 @@ b = BPF(text=program)
 
 # A partir do módulo BPF, pegamos o nome da função atribuída a uma syscall
 # Exemplo: "clone" retorna "sys_clone"
+# Ref: https://www.man7.org/linux/man-pages/man2/syscalls.2.html
 clone = b.get_syscall_fnname("clone")
 
 # Instrumenta a função do kernel `event` 

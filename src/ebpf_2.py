@@ -2,6 +2,11 @@
 from time import sleep
 from bcc import BPF
 
+# Programa com a utilização de um hash map
+# compartilhado entre o módulo BPF e o programa no user space.
+# Utilização da estrutura de dados ao invés do pipe global.
+#
+# Conta o número de processos iniciados por cada usuário
 program = """
 #include <uapi/linux/ptrace.h>
 BPF_HASH(clones);
@@ -24,10 +29,12 @@ int hello_world(void *ctx){
     return 0;
 }
 """
-
+# Mesmo processo do programa anterior
 b = BPF(text=program)
 clone = b.get_syscall_fnname("clone")
 b.attach_kprobe(event=clone, fn_name="hello_world")
+
+# Loop para leitura do hash map
 try:
     while True:
         sleep(2)
