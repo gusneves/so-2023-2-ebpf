@@ -58,23 +58,98 @@ Essas características expandem significativamente o escopo e a utilidade dos pr
 ### Metodologia
 
 A fim de expandir o comportamento do kernel de maneira segura, eficiente e rápida, e demonstrar a instrumentalização deste através do eBPF, utilizaremos as funcionalidades do toolkit open source BPF Compiler Collection (BCC).
+
 Dentre as funcionalidades do BCC, encontramos umwrapper da linguagem C, que permite a declaração do móduloBPF, que será executado diretamente no kernel. Com isto, conseguimos, em um único arquivo, codificar os programas que serão executados no kernel space e no user space.
+
 No algoritmo 1, codificamos o módulo BPF que será executado no kernel, abrangendo as linhas 1 a 22. Nele, definimos um tipo data_t que será utilizado para armazenar as informações de um processo, como seu nome, PID, o timestamp de sua criação e o ID do usuário que o criou. Na linha 9, utilizamos a função BPF_PERF_OUTPUT, que inicializa um buffer circular que servirá como meio de comunicação e compartilhamento de dados entre o programa eBPF e o programa rodando no user space.
+
 A função register_event, definida das linhas 11 a 20, será responsável por pegar os dados dos processos, atribuí-los a uma estrutura do tipo definido anteriormente e registrá-los no buffer events. Na linha 22, é criado um objeto BPF, responsável por definir o programa BPF (no caso, o programa em C previamente codificado) e interagir com sua saída (bcc Reference Guide).
 Após a definição do programa BPF, é necessário instrumentalizar uma função do kernel e anexar a função em C para ser executada toda vez que a chamada de sistema escolhida ocorrer, assim como mostra o algoritmo 2.
+
 Dessa maneira, toda vez que a chamada de sistema “clone”, cujo nome da função é “sys_clone” e é responsável pela criação de um novo processo, é acionada, a função register_event será executada e armazenará os dados do novo processo que foi iniciado no buffer events.
+
 No algoritmo 3, é definida a função print_event, que será responsável por imprimir, de maneira formatada, os eventos submetidos ao buffer. Na linha 36, abrimos para o programa do user space o acesso ao buffer e anexamos a função como callback, de modo que ela seja executada para cada evento submetido, mas apenas após a chamada da função perf_buffer_poll, que capta as entradas de todos os perf buffers abertos.
+
 Para mais detalhes sobre a implementação, o código completo está disponibilizado no Apêndice A.
 
 ### Resultados e Conclusões
 
 Podemos observar na Figura 3, a saída do programa descrito, onde é possível rastrear os processos que foram iniciados, bem como seus respectivos identificadores e os usuários responsáveis por sua criação, associados a um instante no tempo.
-Tal comportamento, não implementado no kernel por padrão, poderia ter muita utilidade, por exemplo, em um cenário de um servidor acessado por inúmeros usuários, já que permite, com eficiência, a rastreabilidade dos processos executados no servidor.
-Portanto, conclui-se que, a partir da metodologia utilizada, foi possível verificar a utilidade do eBPF na prática. O código implementou uma funcionalidade nova no kernel, que não existe por padrão, de forma rápida, eficiente e segura. Tal atualização de comportamento, seguindo meios mais tradicionais, poderia se tornar uma tarefa extremamente custosa e complexa.
 
+Tal comportamento, não implementado no kernel por padrão, poderia ter muita utilidade, por exemplo, em um cenário de um servidor acessado por inúmeros usuários, já que permite, com eficiência, a rastreabilidade dos processos executados no servidor.
+
+Portanto, conclui-se que, a partir da metodologia utilizada, foi possível verificar a utilidade do eBPF na prática. O código implementou uma funcionalidade nova no kernel, que não existe por padrão, de forma rápida, eficiente e segura. Tal atualização de comportamento, seguindo meios mais tradicionais, poderia se tornar uma tarefa extremamente custosa e complexa.
 
 ### Referências
 
 - EBPF Documentation. [S. l.], 2020. Disponível em: https://ebpf.io/what-is-ebpf/. Acesso em: 14 jan. 2024.
 - EBPF: Unlocking the Kernel [OFFICIAL DOCUMENTARY]. Produção: Speakeasy Productions. [S. l.: s. n.], 2023. Disponível em: https://www.youtube.com/watch?v=Wb_vD3XZYOA. Acesso em: 14 jan. 2024.
 - VIZARD, MIKE. Foundation Proposes Advancing eBPF Adoption Across Multiple OSes. Flórida, Estados Unidos, 12 ago. 2021. Disponível em: https://devops.com/foundation-proposes-advancing-ebpf-adoption-across-multiple-oses/. Acesso em: 14 jan. 2024.
+- BCC Reference Guide. GitHub: IO Visor Project, 26 jul. 2016. Disponível em: https://github.com/iovisor/bcc/blob/master/docs/reference_guide.md. Acesso em: 21 jan. 2024.
+
+### Apêndice A
+
+```
+1 #!/usr/bin/python
+2 from bcc import BPF
+3 from bcc.utils import printb
+4
+5 # Utilização da BPF_PERF_OUTPUT
+6 # Cria uma tabela BPF para enviar dados
+customizados de eventos para o user space
+7 # via perf ring buffer
+8 program = """
+9 #include <linux/sched.h>
+10 struct data_t {
+11 u32 uid;
+12 u32 pid;
+13 u64 ts;
+14 char comm[TASK_COMM_LEN];
+15 };
+16
+17 BPF_PERF_OUTPUT(events);
+18
+19 int register_event(void *ctx){
+20 struct data_t data = {};
+21 data.uid = bpf_get_current_uid_gid() >> 32;
+22 data.pid = bpf_get_current_pid_tgid();
+23 data.ts = bpf_ktime_get_ns();
+24 bpf_get_current_comm(&data.comm,
+sizeof(data.comm));
+25
+26 events.perf_submit(ctx,&data,
+27 sizeof(data));
+28 return 0;
+29 }
+30 """
+31
+32 b = BPF(text=program)
+33 clone = b.get_syscall_fnname("clone")
+34 b.attach_kprobe(event=clone,
+fn_name="register_event")
+35 # header da tabela
+36 print("%-18s %-16s %-6s %-6s %s" %
+("TIME(s)", "COMM","PID", "UID", "MESSAGE"))
+37
+38 # Processamento dos eventos
+39 start = 0
+40 def print_event(cpu, data, size):
+41 global start
+42 event = b["events"].event(data)
+43 if start == 0:
+44 start = event.ts
+45 time_s = (float(event.ts - start)) /
+1000000000
+46 printb(b"%-18.9f %-16s %-6d %-6d %s" %
+(time_s, event.comm, event.pid, event.uid,
+47 b"Hello, perf_output!"))
+48
+49 # loop com callback para print_event
+50 b["events"].open_perf_buffer(print_event)
+51
+52 while True:
+53 try:
+54 b.perf_buffer_poll()
+55 except KeyboardInterrupt:
+56 exit()
+```
