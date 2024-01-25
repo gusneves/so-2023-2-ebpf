@@ -18,7 +18,10 @@ Participantes:
 
 - [Introdução](#introdução)
 - [Fundamentos Teóricos](#fundamentos-teóricos)
+- [Metodologia](#metodologia)
+- [Resultados e Conclusões](resultados-e-conclusões)
 - [Referências](#referências)
+- [Apêndice A](apêndice-a)
 
 ### Introdução
 
