@@ -55,6 +55,24 @@ Os programas eBPF são projetados com um foco na composabilidade, introduzindo o
 
 Essas características expandem significativamente o escopo e a utilidade dos programas eBPF, tornando-os não apenas poderosos em termos de rastreamento e filtragem, mas também altamente flexíveis e adaptáveis a uma variedade de cenários de uso. A seção subsequente discute uma das aplicações práticas dessas capacidades, destacando um caso de uso comum e implementação exemplar.
 
+### Metodologia
+
+A fim de expandir o comportamento do kernel de maneira segura, eficiente e rápida, e demonstrar a instrumentalização deste através do eBPF, utilizaremos as funcionalidades do toolkit open source BPF Compiler Collection (BCC).
+Dentre as funcionalidades do BCC, encontramos umwrapper da linguagem C, que permite a declaração do móduloBPF, que será executado diretamente no kernel. Com isto, conseguimos, em um único arquivo, codificar os programas que serão executados no kernel space e no user space.
+No algoritmo 1, codificamos o módulo BPF que será executado no kernel, abrangendo as linhas 1 a 22. Nele, definimos um tipo data_t que será utilizado para armazenar as informações de um processo, como seu nome, PID, o timestamp de sua criação e o ID do usuário que o criou. Na linha 9, utilizamos a função BPF_PERF_OUTPUT, que inicializa um buffer circular que servirá como meio de comunicação e compartilhamento de dados entre o programa eBPF e o programa rodando no user space.
+A função register_event, definida das linhas 11 a 20, será responsável por pegar os dados dos processos, atribuí-los a uma estrutura do tipo definido anteriormente e registrá-los no buffer events. Na linha 22, é criado um objeto BPF, responsável por definir o programa BPF (no caso, o programa em C previamente codificado) e interagir com sua saída (bcc Reference Guide).
+Após a definição do programa BPF, é necessário instrumentalizar uma função do kernel e anexar a função em C para ser executada toda vez que a chamada de sistema escolhida ocorrer, assim como mostra o algoritmo 2.
+Dessa maneira, toda vez que a chamada de sistema “clone”, cujo nome da função é “sys_clone” e é responsável pela criação de um novo processo, é acionada, a função register_event será executada e armazenará os dados do novo processo que foi iniciado no buffer events.
+No algoritmo 3, é definida a função print_event, que será responsável por imprimir, de maneira formatada, os eventos submetidos ao buffer. Na linha 36, abrimos para o programa do user space o acesso ao buffer e anexamos a função como callback, de modo que ela seja executada para cada evento submetido, mas apenas após a chamada da função perf_buffer_poll, que capta as entradas de todos os perf buffers abertos.
+Para mais detalhes sobre a implementação, o código completo está disponibilizado no Apêndice A.
+
+### Resultados e Conclusões
+
+Podemos observar na Figura 3, a saída do programa descrito, onde é possível rastrear os processos que foram iniciados, bem como seus respectivos identificadores e os usuários responsáveis por sua criação, associados a um instante no tempo.
+Tal comportamento, não implementado no kernel por padrão, poderia ter muita utilidade, por exemplo, em um cenário de um servidor acessado por inúmeros usuários, já que permite, com eficiência, a rastreabilidade dos processos executados no servidor.
+Portanto, conclui-se que, a partir da metodologia utilizada, foi possível verificar a utilidade do eBPF na prática. O código implementou uma funcionalidade nova no kernel, que não existe por padrão, de forma rápida, eficiente e segura. Tal atualização de comportamento, seguindo meios mais tradicionais, poderia se tornar uma tarefa extremamente custosa e complexa.
+
+
 ### Referências
 
 - EBPF Documentation. [S. l.], 2020. Disponível em: https://ebpf.io/what-is-ebpf/. Acesso em: 14 jan. 2024.
